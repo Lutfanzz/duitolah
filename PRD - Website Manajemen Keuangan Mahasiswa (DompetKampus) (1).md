@@ -264,6 +264,77 @@ Landing page, Daftar/Masuk, Onboarding, Dashboard, Transaksi, Anggaran, Tabungan
 
 Santai, memotivasi, dan jelas. Contoh: "Jatah hari ini Rp45.000. Yuk, masih aman!"
 
+### 12.4 Arahan Visual: Futuristik, Sinematik, dan Tetap Jelas
+
+Prinsipnya: efek futuristik dan sinematik hanya dipakai di lapisan atmosfer (latar, cahaya, gerak), sedangkan angka dan tombol aksi tetap besar, kontras, dan mudah dibaca.
+
+**Konsep:** "Kokpit keuangan pribadi". Tampilan dark-first dengan nuansa pusat kendali: saldo dan jatah harian menjadi instrumen utama, target tabungan dibingkai sebagai "misi" dengan progres yang terlihat jelas.
+
+**Palet warna (CSS variables)**
+
+| Token | Contoh nilai | Fungsi |
+| --- | --- | --- |
+| --bg-0 | #070A12 | Latar utama (hampir hitam kebiruan) |
+| --bg-1 | #0D1220 | Kartu dan panel |
+| --glass | rgba(255,255,255,0.06) | Permukaan kaca (glassmorphism) |
+| --border | rgba(255,255,255,0.10) | Garis tepi tipis kartu |
+| --text-1 | #EAF0FF | Teks utama dan angka |
+| --text-2 | #9AA7C7 | Teks sekunder |
+| --accent-cyan | #22D3EE | Aksi utama, elemen aktif, glow |
+| --accent-violet | #8B5CF6 | Aksen sekunder, gradien latar |
+| --income | #34D399 | Pemasukan dan status aman |
+| --warn | #FBBF24 | Mendekati batas anggaran |
+| --expense | #FB7185 | Pengeluaran dan melewati batas |
+
+Aturan warna: batasi 1–2 warna aksen per layar, rasio kontras teks minimal 4,5:1 (target 7:1 untuk angka utama), dan warna semantik selalu disertai ikon atau tanda +/− agar tidak hanya bergantung pada warna.
+
+**Tipografi**
+
+- Maksimal dua keluarga font: satu untuk judul (mis. Space Grotesk atau Sora) dan satu untuk isi dan angka (mis. Inter).
+- Angka keuangan memakai font-variant-numeric: tabular-nums agar digit rata dan stabil saat berubah.
+- Judul besar dan tegas (kesan poster film), isi 16px ke atas, jarak antarbaris lega.
+- Gunakan woff2 yang di-subset agar hemat kuota.
+
+**Bahasa visual**
+
+- Satu elemen pahlawan (hero) per layar: di dashboard berupa kartu "Jatah Hari Ini" dengan ring progres bercahaya.
+- Kartu kaca: backdrop-filter blur 12–16px, border 1px tipis, sudut membulat 16–20px.
+- Latar gradien mesh gelap (cyan dan violet redup) dengan grid garis sangat halus; cahaya (glow) hanya pada elemen aktif dan hover.
+- Ikon garis konsisten (stroke 1,5–2px), tombol aksi utama "+" melayang dengan glow lembut.
+- Grafik minimalis: garis tipis bercahaya, tanpa gridline berlebihan, label langsung pada data.
+
+**Sentuhan sinematik**
+
+- Landing page: hero layar penuh dengan headline besar, latar gradien bergerak pelan atau partikel canvas ringan, dan tombol ajakan tunggal.
+- Opening saat aplikasi dibuka: angka saldo menghitung naik (count-up) dalam ±1 detik.
+- Transisi antarhalaman berupa fade dan slide halus; scroll-reveal pada kartu; parallax ringan pada latar.
+- Momen pencapaian: saat target tabungan tercapai, tampilkan ledakan cahaya atau confetti singkat dengan pesan merayakan.
+
+| Elemen | Efek | Durasi | Easing |
+| --- | --- | --- | --- |
+| Angka saldo | Count-up | 800–1200 ms | ease-out |
+| Pindah halaman | Fade + slide | 250–400 ms | ease-in-out |
+| Kartu saat hover/tap | Naik tipis + glow | 150 ms | ease-out |
+| Grafik muncul | Garis tergambar | 600–900 ms | ease-out |
+| Ring progres | Terisi bertahap | 800 ms | ease-in-out |
+| Target tercapai | Burst cahaya/confetti | ≈1500 ms | ease-out |
+
+**Implementasi dengan HTML, CSS, dan JS murni**
+
+- CSS variables untuk tema, @property untuk animasi gradien, dan animasi hanya pada transform dan opacity agar lancar 60 fps.
+- IntersectionObserver untuk scroll-reveal, stroke-dashoffset pada SVG untuk animasi garis dan ring, canvas 2D untuk partikel ringan.
+- View Transitions API sebagai peningkatan bertahap (fallback: fade biasa); tidak memerlukan Three.js atau library animasi berat.
+- Sediakan fallback bila backdrop-filter tidak didukung (latar solid semi-transparan).
+
+**Pagar pengaman agar tetap jelas**
+
+- Satu aksi utama per layar dan maksimal tiga tingkat hierarki visual.
+- Elemen dekoratif memakai pointer-events: none dan tidak boleh menutupi teks; teks isi tidak diletakkan di atas latar bergerak tanpa lapisan gelap.
+- Hormati prefers-reduced-motion: matikan animasi besar dan ganti dengan transisi sederhana.
+- Hindari glow neon pada paragraf panjang; efek cahaya hanya untuk angka kunci, tombol, dan status.
+- Anggaran performa: LCP < 2,5 detik di jaringan 4G, total aset visual ringan, animasi dimatikan otomatis pada perangkat berdaya rendah.
+- Sediakan opsi tema terang bergaya bersih sebagai alternatif untuk pengguna yang kurang nyaman dengan mode gelap.
+
 ## 13. Strategi Peluncuran dan Pertumbuhan
 
 - **Pilot:** 1–2 kampus atau komunitas mahasiswa (BEM, himpunan, komunitas literasi keuangan) dengan 100–200 pengguna beta.
