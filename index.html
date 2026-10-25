@@ -1033,11 +1033,17 @@
         <button class="back-btn" onclick="showPage('dashboard')" title="Kembali">←</button>
         <div class="topbar-title">Tabungan</div>
       </div>
-      <div class="topbar-actions">
-        <button class="icon-btn" onclick="openSavingsModal()" title="Tambah Target">+</button>
-      </div>
     </div>
-    <div class="container" style="padding-top:12px;">
+    <div class="container" style="padding-top:14px;">
+
+      <!-- Summary bar -->
+      <div id="savings-summary" style="display:flex;gap:10px;margin-bottom:16px;"></div>
+
+      <!-- Tombol tambah utama -->
+      <button class="btn btn-primary btn-full" onclick="openSavingsModal()" style="margin-bottom:16px;gap:8px;">
+        <span style="font-size:1.1rem;line-height:1;">+</span> Tambah Tabungan Baru
+      </button>
+
       <div id="savings-list"></div>
     </div>
   </div>
@@ -1159,24 +1165,43 @@
       </div>
 
       <div class="settings-section">
-        <div class="settings-title">Gemini AI</div>
-        <div class="settings-item" style="border-radius:var(--radius-sm) var(--radius-sm) 0 0;display:block;cursor:default;">
-          <div id="gemini-key-saved-banner" style="display:none;align-items:center;gap:8px;background:var(--income-dim);border:1px solid rgba(52,211,153,0.3);border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:10px;">
-            <span style="color:var(--income);font-size:1rem;">✅</span>
-            <span style="font-size:0.82rem;color:var(--income);font-weight:600;">API key tersimpan.</span>
-            <button class="btn btn-secondary btn-sm" style="margin-left:auto;" onclick="editGeminiKey()">Ganti Key</button>
+        <div class="settings-title">AI Provider</div>
+
+        <!-- Provider selector -->
+        <div class="settings-item" style="border-radius:var(--radius-sm) var(--radius-sm) 0 0;display:block;cursor:default;border-bottom:none;">
+          <div class="form-group" style="margin-bottom:10px;">
+            <label class="form-label">Provider</label>
+            <select id="ai-provider-select" class="form-control" onchange="onProviderChange()">
+              <option value="gemini">Google Gemini</option>
+              <option value="litrouter">LitRouter (OpenAI-compatible)</option>
+            </select>
           </div>
-          <div id="gemini-key-input-wrap" class="form-group" style="margin-bottom:6px;">
-            <label class="form-label" for="gemini-key-input">API Key Gemini</label>
-            <input type="text" id="gemini-key-input" class="form-control" placeholder="Masukkan API key dari Google AI Studio" autocomplete="off" spellcheck="false" />
+          <div class="form-group" style="margin-bottom:10px;">
+            <label class="form-label">Model</label>
+            <input type="text" id="ai-model-input" class="form-control" placeholder="nama model" autocomplete="off" spellcheck="false" />
           </div>
-          <p class="form-hint">Dapatkan API key gratis di <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com</a>. Key disimpan hanya di perangkat ini.</p>
-          <div style="display:flex;gap:8px;margin-top:8px;" id="gemini-key-btns">
-            <button class="btn btn-primary btn-sm" onclick="saveGeminiKey()">Simpan Key</button>
-            <button class="btn btn-secondary btn-sm" onclick="deleteGeminiKey()">Hapus Key</button>
+          <!-- LitRouter-only: Base URL -->
+          <div class="form-group" id="ai-baseurl-group" style="display:none;margin-bottom:10px;">
+            <label class="form-label">Base URL</label>
+            <input type="text" id="ai-baseurl-input" class="form-control" placeholder="https://..." autocomplete="off" spellcheck="false" />
+          </div>
+          <div class="form-group" style="margin-bottom:6px;">
+            <label class="form-label">API Key</label>
+            <input type="password" id="ai-key-input" class="form-control" placeholder="Masukkan API key" autocomplete="off" spellcheck="false" />
+          </div>
+          <!-- Hint per-provider -->
+          <p class="form-hint" id="ai-provider-hint"></p>
+          <div id="ai-key-saved-banner" style="display:none;align-items:center;gap:8px;background:var(--income-dim);border:1px solid rgba(52,211,153,0.3);border-radius:var(--radius-sm);padding:8px 12px;margin-top:8px;">
+            <span style="color:var(--income);font-size:0.9rem;">✓</span>
+            <span style="font-size:0.82rem;color:var(--income);font-weight:600;">Konfigurasi AI tersimpan.</span>
+            <button class="btn btn-secondary btn-sm" style="margin-left:auto;" onclick="editAIConfig()">Edit</button>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:10px;" id="ai-key-btns">
+            <button class="btn btn-primary btn-sm" onclick="saveAIConfig()">Simpan</button>
+            <button class="btn btn-secondary btn-sm" onclick="clearAIConfig()">Hapus</button>
           </div>
         </div>
-        <label class="settings-item" style="border-radius:0 0 var(--radius-sm) var(--radius-sm);border-top:none;">
+        <label class="settings-item" style="border-radius:0 0 var(--radius-sm) var(--radius-sm);">
           <span class="settings-label">Aktifkan fitur AI</span>
           <label class="toggle-switch">
             <input type="checkbox" id="ai-enabled-toggle" onchange="toggleAIEnabled(this)" />
@@ -1351,7 +1376,7 @@
       <div class="modal-body">
         <input type="hidden" id="savings-edit-id" />
         <div class="form-group">
-          <label class="form-label">Nama Target *</label>
+          <label class="form-label">Nama Tabungan *</label>
           <input type="text" id="savings-name" class="form-control" placeholder="mis. Laptop baru, Wisuda, Dana Darurat" maxlength="60" />
         </div>
         <div class="form-group">
@@ -1359,9 +1384,32 @@
           <input type="number" id="savings-target" class="form-control" placeholder="5000000" min="1" />
         </div>
         <div class="form-group">
-          <label class="form-label">Tenggat</label>
+          <label class="form-label">Tenggat (opsional)</label>
           <input type="date" id="savings-deadline" class="form-control" />
         </div>
+        <div class="form-group">
+          <label class="form-label">Dompet Tujuan (opsional)</label>
+          <select id="savings-wallet-id" class="form-control">
+            <option value="">— Tidak ditentukan —</option>
+          </select>
+          <div class="form-hint">Uang setor akan masuk langsung ke dompet ini.</div>
+        </div>
+        <div class="divider"></div>
+        <div style="font-size:0.8rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">Rencana Setoran Rutin</div>
+        <div style="display:flex;gap:8px;">
+          <div class="form-group" style="flex:2;margin-bottom:0;">
+            <label class="form-label">Nominal per periode (Rp)</label>
+            <input type="number" id="savings-planned-amount" class="form-control" placeholder="mis. 100000" min="0" />
+          </div>
+          <div class="form-group" style="flex:1;margin-bottom:0;">
+            <label class="form-label">Periode</label>
+            <select id="savings-planned-period" class="form-control">
+              <option value="weekly">Mingguan</option>
+              <option value="monthly">Bulanan</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-hint" style="margin-top:6px;">Opsional — bantu kamu konsisten menabung secara rutin.</div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" style="flex:1;" onclick="closeModal('modal-savings')">Batal</button>
@@ -1375,18 +1423,41 @@
     <div class="modal">
       <div class="modal-handle"></div>
       <div class="modal-header">
-        <span class="modal-title">Setor Tabungan</span>
+        <span class="modal-title" id="modal-deposit-title">Setor Tabungan</span>
         <button class="modal-close" onclick="closeModal('modal-deposit')">✕</button>
       </div>
       <div class="modal-body">
         <input type="hidden" id="deposit-goal-id" />
+
+        <!-- Info goal -->
+        <div id="deposit-goal-info" style="display:none;background:var(--accent-cyan-dim);border:1px solid rgba(34,211,238,0.25);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:14px;">
+          <div style="font-size:0.72rem;color:var(--text-2);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Tabungan</div>
+          <div id="deposit-goal-name" style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.95rem;color:var(--text-1);"></div>
+          <div id="deposit-goal-progress" style="font-size:0.78rem;color:var(--text-2);margin-top:2px;"></div>
+        </div>
+
         <div class="form-group">
           <label class="form-label">Jumlah Setoran (Rp) *</label>
           <input type="number" id="deposit-amount" class="form-control" placeholder="100000" min="1" />
         </div>
         <div class="form-group">
           <label class="form-label">Dari Dompet *</label>
-          <select id="deposit-wallet" class="form-control"></select>
+          <select id="deposit-wallet-from" class="form-control"></select>
+        </div>
+        <div class="form-group" id="deposit-wallet-to-group">
+          <label class="form-label">Masuk ke Rekening/Dompet</label>
+          <select id="deposit-wallet-to" class="form-control">
+            <option value="">— Hanya dicatat, tidak masuk dompet —</option>
+          </select>
+          <div class="form-hint">Pilih rekening tujuan agar saldo dompet tersebut ikut bertambah.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tanggal</label>
+          <input type="date" id="deposit-date" class="form-control" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Catatan (opsional)</label>
+          <input type="text" id="deposit-note" class="form-control" placeholder="mis. setoran minggu ini" maxlength="80" />
         </div>
       </div>
       <div class="modal-footer">
@@ -1463,8 +1534,21 @@
 // ============================
 // === CONSTANTS & CONFIG ====
 // ============================
-const GEMINI_MODEL = 'gemini-2.0-flash';
-const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+// AI provider defaults — didefinisikan lebih dulu (tidak butuh DB)
+const AI_PROVIDERS = {
+  gemini: {
+    label: 'Google Gemini',
+    defaultModel: 'gemini-2.5-flash',
+    defaultBaseUrl: '',
+    hint: 'Dapatkan API key gratis di <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com</a>.',
+  },
+  litrouter: {
+    label: 'LitRouter',
+    defaultModel: 'qwen/qwen3-235b-a22b',
+    defaultBaseUrl: 'https://litrouter.com/v1',
+    hint: 'Daftarkan akun di <a href="https://litrouter.com" target="_blank">litrouter.com</a> untuk mendapatkan API key dan daftar model yang tersedia.',
+  },
+};
 
 const DEFAULT_CATEGORIES = [
   { id: 'cat_makan', name: 'Makan & Minum', icon: '🍜', type: 'expense' },
@@ -1494,6 +1578,26 @@ const DB = {
   set(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) { showToast('Penyimpanan penuh!', 'error'); } },
   del(key) { localStorage.removeItem(key); },
 };
+
+// AI config helpers — harus setelah DB
+function getAIConfig() {
+  return DB.get('dk_ai_config', {
+    provider: 'gemini',
+    model: AI_PROVIDERS.gemini.defaultModel,
+    baseUrl: '',
+    apiKey: '',
+  });
+}
+function saveAIConfig_store(cfg) { DB.set('dk_ai_config', cfg); }
+
+// Migrasi key lama dk_gemini_key → dk_ai_config
+(function migrateOldKey() {
+  const old = DB.get('dk_gemini_key', '');
+  if (old && !DB.get('dk_ai_config', null)) {
+    DB.set('dk_ai_config', { provider: 'gemini', model: AI_PROVIDERS.gemini.defaultModel, baseUrl: '', apiKey: old });
+    DB.del('dk_gemini_key');
+  }
+})();
 
 function getSettings() { return DB.get('dk_settings', { name: '', incomeSource: '', allowance: 0, period: 'monthly', goal: '', theme: 'dark', aiEnabled: false, onboarded: false }); }
 function saveSettings(s) { DB.set('dk_settings', s); }
@@ -1764,7 +1868,7 @@ function renderDashboard() {
     ds.innerHTML = `<div class="empty-state" style="padding:20px 0;"><div class="empty-state-icon">🏦</div><div class="empty-state-text">Belum ada target tabungan. <button class="section-link" onclick="showPage('savings')">Buat sekarang</button></div></div>`;
   } else {
     const contribs = getGoalContributions();
-    ds.innerHTML = goals.slice(0, 2).map(g => renderSavingsItem(g, contribs)).join('');
+    ds.innerHTML = goals.slice(0, 2).map(g => renderSavingsItem(g, contribs, wallets)).join('');
   }
 }
 
@@ -2178,18 +2282,31 @@ function checkBudgetAlerts(range) {
 // ============================
 function openSavingsModal(editId = null) {
   document.getElementById('savings-edit-id').value = editId || '';
-  document.getElementById('modal-savings-title').textContent = editId ? 'Edit Target' : 'Buat Target Tabungan';
+  document.getElementById('modal-savings-title').textContent = editId ? 'Edit Tabungan' : 'Buat Target Tabungan';
+
+  // Populate dompet tujuan dropdown
+  const wallets = getWallets();
+  const walletSel = document.getElementById('savings-wallet-id');
+  walletSel.innerHTML = `<option value="">— Tidak ditentukan —</option>` +
+    wallets.map(w => `<option value="${w.id}">${WALLET_ICONS[w.type] || '👛'} ${esc(w.name)} (${fmt(w.balance)})</option>`).join('');
+
   if (editId) {
     const g = getSavingsGoals().find(g => g.id === editId);
     if (g) {
       document.getElementById('savings-name').value = g.name;
       document.getElementById('savings-target').value = g.target;
       document.getElementById('savings-deadline').value = g.deadline || '';
+      walletSel.value = g.wallet_id || '';
+      document.getElementById('savings-planned-amount').value = g.planned_amount || '';
+      document.getElementById('savings-planned-period').value = g.planned_period || 'weekly';
     }
   } else {
     document.getElementById('savings-name').value = '';
     document.getElementById('savings-target').value = '';
     document.getElementById('savings-deadline').value = '';
+    walletSel.value = '';
+    document.getElementById('savings-planned-amount').value = '';
+    document.getElementById('savings-planned-period').value = 'weekly';
   }
   openModal('modal-savings');
 }
@@ -2198,15 +2315,18 @@ function saveSavingsGoal() {
   const name = document.getElementById('savings-name').value.trim();
   const target = parseInt(document.getElementById('savings-target').value);
   const deadline = document.getElementById('savings-deadline').value;
-  if (!name) { showToast('Masukkan nama target!', 'error'); return; }
+  const wallet_id = document.getElementById('savings-wallet-id').value || null;
+  const planned_amount = parseInt(document.getElementById('savings-planned-amount').value) || 0;
+  const planned_period = document.getElementById('savings-planned-period').value;
+  if (!name) { showToast('Masukkan nama tabungan!', 'error'); return; }
   if (!target || target <= 0) { showToast('Masukkan nominal target!', 'error'); return; }
   const editId = document.getElementById('savings-edit-id').value;
   const goals = getSavingsGoals();
   if (editId) {
     const g = goals.find(g => g.id === editId);
-    if (g) { g.name = name; g.target = target; g.deadline = deadline; }
+    if (g) { g.name = name; g.target = target; g.deadline = deadline; g.wallet_id = wallet_id; g.planned_amount = planned_amount; g.planned_period = planned_period; }
   } else {
-    goals.push({ id: uid(), name, target, deadline, created_at: Date.now() });
+    goals.push({ id: uid(), name, target, deadline, wallet_id, planned_amount, planned_period, created_at: Date.now() });
   }
   saveSavingsGoals(goals);
   closeModal('modal-savings');
@@ -2216,28 +2336,83 @@ function saveSavingsGoal() {
 
 function openDepositModal(goalId) {
   document.getElementById('deposit-goal-id').value = goalId;
-  document.getElementById('deposit-amount').value = '';
+  const g = getSavingsGoals().find(g => g.id === goalId);
+  const contribs = getGoalContributions();
+  const collected = contribs.filter(c => c.goal_id === goalId).reduce((s, c) => s + c.amount, 0);
+  const remaining = Math.max(0, (g ? g.target : 0) - collected);
+
+  // Header modal
+  document.getElementById('modal-deposit-title').textContent = g ? `Setor — ${g.name}` : 'Setor Tabungan';
+
+  // Info box
+  if (g) {
+    document.getElementById('deposit-goal-info').style.display = 'block';
+    document.getElementById('deposit-goal-name').textContent = g.name;
+    document.getElementById('deposit-goal-progress').textContent =
+      `Terkumpul ${fmt(collected)} dari ${fmt(g.target)} · Sisa ${fmt(remaining)}`;
+  } else {
+    document.getElementById('deposit-goal-info').style.display = 'none';
+  }
+
+  // Pre-fill amount from planned_amount
+  document.getElementById('deposit-amount').value = (g && g.planned_amount > 0) ? g.planned_amount : '';
+  document.getElementById('deposit-date').value = today();
+  document.getElementById('deposit-note').value = '';
+
   const wallets = getWallets();
-  document.getElementById('deposit-wallet').innerHTML = wallets.map(w => `<option value="${w.id}">${WALLET_ICONS[w.type] || '👛'} ${esc(w.name)} — ${fmt(w.balance)}</option>`).join('');
+  const walletOpts = wallets.map(w =>
+    `<option value="${w.id}">${WALLET_ICONS[w.type] || '👛'} ${esc(w.name)} — ${fmt(w.balance)}</option>`
+  ).join('');
+
+  document.getElementById('deposit-wallet-from').innerHTML = walletOpts;
+
+  // "Ke dompet" — semua dompet kecuali yang sama dengan "dari" — pre-select dompet tujuan goal
+  const toOpts = `<option value="">— Hanya dicatat, tidak masuk dompet —</option>` + walletOpts;
+  document.getElementById('deposit-wallet-to').innerHTML = toOpts;
+  if (g && g.wallet_id) {
+    document.getElementById('deposit-wallet-to').value = g.wallet_id;
+  }
+
   openModal('modal-deposit');
 }
 
 function saveDeposit() {
   const goalId = document.getElementById('deposit-goal-id').value;
   const amount = parseInt(document.getElementById('deposit-amount').value);
-  const walletId = document.getElementById('deposit-wallet').value;
+  const fromWalletId = document.getElementById('deposit-wallet-from').value;
+  const toWalletId = document.getElementById('deposit-wallet-to').value;
+  const date = document.getElementById('deposit-date').value || today();
+  const note = document.getElementById('deposit-note').value.trim();
+
   if (!amount || amount <= 0) { showToast('Masukkan jumlah setoran!', 'error'); return; }
+  if (toWalletId && fromWalletId === toWalletId) {
+    showToast('Dompet asal dan tujuan tidak boleh sama!', 'error'); return;
+  }
+
   const wallets = getWallets();
-  const wallet = wallets.find(w => w.id === walletId);
-  if (!wallet || wallet.balance < amount) { showToast('Saldo tidak cukup!', 'error'); return; }
-  wallet.balance -= amount;
+  const fromWallet = wallets.find(w => w.id === fromWalletId);
+  if (!fromWallet || fromWallet.balance < amount) { showToast('Saldo tidak cukup!', 'error'); return; }
+
+  // Kurangi saldo dompet asal
+  fromWallet.balance -= amount;
+
+  // Tambah saldo dompet tujuan (jika dipilih)
+  if (toWalletId) {
+    const toWallet = wallets.find(w => w.id === toWalletId);
+    if (toWallet) toWallet.balance += amount;
+  }
+
   saveWallets(wallets);
+
   const contribs = getGoalContributions();
-  contribs.push({ id: uid(), goal_id: goalId, wallet_id: walletId, amount, date: today() });
+  contribs.push({ id: uid(), goal_id: goalId, wallet_id: fromWalletId, to_wallet_id: toWalletId || null, amount, date, note });
   saveGoalContributions(contribs);
   closeModal('modal-deposit');
   showToast('Setoran berhasil!', 'success');
   renderSavingsPage();
+  // Refresh dashboard jika aktif
+  const ap = document.querySelector('.page.active');
+  if (ap?.id === 'page-dashboard') renderDashboard();
 }
 
 function deleteSavingsGoal(id) {
@@ -2247,32 +2422,62 @@ function deleteSavingsGoal(id) {
   showToast('Target dihapus.', 'success');
 }
 
-function renderSavingsItem(g, contribs) {
+function renderSavingsItem(g, contribs, wallets) {
   const collected = contribs.filter(c => c.goal_id === g.id).reduce((s, c) => s + c.amount, 0);
   const pct = Math.min(100, Math.round((collected / g.target) * 100));
   const remaining = Math.max(0, g.target - collected);
+
+  // Suggestion: prefer planned_amount, fall back to deadline calc
   let suggestion = '';
-  if (g.deadline && remaining > 0) {
+  if (g.planned_amount > 0 && remaining > 0) {
+    const periodLabel = g.planned_period === 'monthly' ? 'bulan' : 'minggu';
+    const periodsNeeded = Math.ceil(remaining / g.planned_amount);
+    suggestion = `Rencana setor ${fmt(g.planned_amount)}/${periodLabel} · selesai dalam ±${periodsNeeded} ${periodLabel} lagi`;
+  } else if (g.deadline && remaining > 0) {
     const days = Math.max(1, Math.ceil((new Date(g.deadline) - new Date()) / 86400000));
     const weeks = Math.ceil(days / 7);
     suggestion = `Setor ${fmt(Math.ceil(remaining / weeks))}/minggu untuk mencapai target.`;
   }
-  const deadlineStr = g.deadline ? new Date(g.deadline + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Tanpa tenggat';
+
+  const deadlineStr = g.deadline
+    ? new Date(g.deadline + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+    : 'Tanpa tenggat';
   const progressColor = pct >= 100 ? 'var(--income)' : 'var(--accent-cyan)';
+
+  // Chips row
+  const plannedChip = g.planned_amount > 0
+    ? `<span style="font-size:0.7rem;background:var(--accent-cyan-dim);color:var(--accent-cyan);border-radius:20px;padding:2px 9px;font-weight:600;">${fmt(g.planned_amount)}/${g.planned_period === 'monthly' ? 'bln' : 'mgg'}</span>`
+    : '';
+
+  // Dompet tujuan chip
+  const linkedWallet = g.wallet_id ? wallets.find(w => w.id === g.wallet_id) : null;
+  const walletChip = linkedWallet
+    ? `<span style="font-size:0.7rem;background:var(--accent-violet-dim);color:var(--accent-violet);border-radius:20px;padding:2px 9px;font-weight:600;">${WALLET_ICONS[linkedWallet.type] || '👛'} ${esc(linkedWallet.name)}</span>`
+    : '';
+
   return `<div class="savings-item">
     <div class="savings-header">
-      <div><div class="savings-name">${esc(g.name)}</div><div class="savings-deadline">Tenggat: ${deadlineStr}</div></div>
-      <div style="display:flex;gap:6px;">
+      <div style="min-width:0;flex:1;">
+        <div class="savings-name">${esc(g.name)}</div>
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-top:4px;">
+          <span class="savings-deadline">Tenggat: ${deadlineStr}</span>
+          ${plannedChip}
+          ${walletChip}
+        </div>
+      </div>
+      <div style="display:flex;gap:5px;flex-shrink:0;margin-left:8px;">
         <button class="btn btn-sm btn-primary" onclick="openDepositModal('${g.id}')">Setor</button>
-        <button class="btn btn-sm btn-secondary" onclick="openSavingsModal('${g.id}')">✏️</button>
-        <button class="btn btn-sm btn-secondary" style="color:var(--expense);" onclick="deleteSavingsGoal('${g.id}')">🗑️</button>
+        <button class="btn btn-sm btn-secondary" onclick="openSavingsModal('${g.id}')">Edit</button>
+        <button class="btn btn-sm btn-secondary" style="color:var(--expense);" onclick="deleteSavingsGoal('${g.id}')">Hapus</button>
       </div>
     </div>
     <div class="savings-amounts">
       <span style="color:var(--text-2)">Terkumpul: <strong style="color:var(--text-1)">${fmt(collected)}</strong></span>
       <span style="color:var(--text-2)">Target: <strong style="color:var(--text-1)">${fmt(g.target)}</strong></span>
     </div>
-    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${progressColor}"></div></div>
+    <div class="progress-bar" style="margin-top:8px;">
+      <div class="progress-fill" style="width:${pct}%;background:${progressColor}"></div>
+    </div>
     <div style="display:flex;justify-content:space-between;margin-top:6px;">
       <span class="text-sm text-muted">${pct}% tercapai</span>
       <span class="text-sm" style="color:${progressColor};font-weight:600;">${pct >= 100 ? 'Tercapai!' : fmt(remaining) + ' lagi'}</span>
@@ -2284,12 +2489,35 @@ function renderSavingsItem(g, contribs) {
 function renderSavingsPage() {
   const goals = getSavingsGoals();
   const contribs = getGoalContributions();
+  const wallets = getWallets();
   const container = document.getElementById('savings-list');
+
+  // Summary bar
+  const summaryEl = document.getElementById('savings-summary');
+  if (summaryEl) {
+    const totalTarget = goals.reduce((s, g) => s + g.target, 0);
+    const totalCollected = goals.reduce((s, g) => {
+      return s + contribs.filter(c => c.goal_id === g.id).reduce((a, c) => a + c.amount, 0);
+    }, 0);
+    const pctOverall = totalTarget > 0 ? Math.round((totalCollected / totalTarget) * 100) : 0;
+    summaryEl.innerHTML = goals.length === 0 ? '' : `
+      <div class="stat-card" style="flex:1;text-align:left;padding:12px 14px;">
+        <div style="font-size:0.72rem;color:var(--text-2);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">${goals.length} target aktif</div>
+        <div style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.1rem;font-variant-numeric:tabular-nums;color:var(--accent-cyan);">${fmt(totalCollected)}</div>
+        <div style="font-size:0.75rem;color:var(--text-2);margin-top:2px;">dari ${fmt(totalTarget)} total target</div>
+      </div>
+      <div class="stat-card" style="flex:1;text-align:left;padding:12px 14px;">
+        <div style="font-size:0.72rem;color:var(--text-2);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Progress keseluruhan</div>
+        <div style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.1rem;color:${pctOverall >= 100 ? 'var(--income)' : 'var(--text-1)'};">${pctOverall}%</div>
+        <div class="progress-bar" style="margin-top:6px;"><div class="progress-fill" style="width:${pctOverall}%;background:${pctOverall >= 100 ? 'var(--income)' : 'var(--accent-cyan)'}"></div></div>
+      </div>`;
+  }
+
   if (goals.length === 0) {
-    container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🏦</div><div class="empty-state-text">Belum ada target tabungan.<br>Mulai menabung untuk impianmu!</div></div>`;
+    container.innerHTML = `<div class="empty-state"><div class="empty-state-icon" style="font-size:2.5rem;">📒</div><div class="empty-state-text">Belum ada target tabungan.<br>Tekan tombol di atas untuk mulai menabung.</div></div>`;
     return;
   }
-  container.innerHTML = goals.map(g => renderSavingsItem(g, contribs)).join('');
+  container.innerHTML = goals.map(g => renderSavingsItem(g, contribs, wallets)).join('');
 }
 
 // ============================
@@ -2382,11 +2610,62 @@ function renderReports() {
 // ============================
 let aiCooldown = false;
 
+// Abstraksi pemanggilan AI — handle dua format: Gemini & OpenAI-compatible
+async function callAI(prompt) {
+  const cfg = getAIConfig();
+  if (!cfg.apiKey) throw new Error('API key belum diisi. Masukkan di Pengaturan → AI Provider.');
+
+  if (cfg.provider === 'gemini') {
+    const model = cfg.model || AI_PROVIDERS.gemini.defaultModel;
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+    const res = await fetch(`${endpoint}?key=${cfg.apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+    });
+    if (res.status === 429) throw new Error('Kuota Gemini habis. Coba lagi nanti.');
+    if (res.status === 400) throw new Error('API key tidak valid atau permintaan salah. Periksa key di Pengaturan.');
+    if (res.status === 403) throw new Error('API key tidak punya izin. Pastikan Gemini API diaktifkan di Google AI Studio.');
+    if (res.status === 404) throw new Error(`Model "${model}" tidak ditemukan. Periksa nama model di Pengaturan.`);
+    if (!res.ok) throw new Error(`Gemini error HTTP ${res.status}. Coba lagi nanti.`);
+    const data = await res.json();
+    return data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Tidak ada hasil.';
+
+  } else {
+    // OpenAI-compatible (LitRouter, OpenRouter, dll)
+    const model = cfg.model || AI_PROVIDERS.litrouter.defaultModel;
+    const baseUrl = (cfg.baseUrl || AI_PROVIDERS.litrouter.defaultBaseUrl).replace(/\/$/, '');
+    const res = await fetch(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${cfg.apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7,
+      }),
+    });
+    if (res.status === 401) throw new Error('API key tidak valid. Periksa key di Pengaturan.');
+    if (res.status === 402) throw new Error('Kredit LitRouter habis. Isi ulang di litrouter.com.');
+    if (res.status === 429) throw new Error('Rate limit tercapai. Tunggu sebentar lalu coba lagi.');
+    if (res.status === 404) throw new Error(`Model "${model}" tidak ditemukan. Periksa nama model di Pengaturan.`);
+    if (!res.ok) {
+      let msg = `Error HTTP ${res.status}.`;
+      try { const d = await res.json(); msg = d?.error?.message || msg; } catch {}
+      throw new Error(msg);
+    }
+    const data = await res.json();
+    return data?.choices?.[0]?.message?.content || 'Tidak ada hasil.';
+  }
+}
+
 async function generateAIResume() {
   if (aiCooldown) { showToast('Tunggu sebentar sebelum membuat resume lagi.', 'error'); return; }
   const s = getSettings();
-  const apiKey = DB.get('dk_gemini_key', '');
-  if (!s.aiEnabled || !apiKey) {
+  const cfg = getAIConfig();
+  if (!s.aiEnabled || !cfg.apiKey) {
     showToast('Aktifkan fitur AI dan masukkan API Key di Pengaturan.', 'error');
     showPage('settings');
     return;
@@ -2408,8 +2687,7 @@ async function generateAIResume() {
   const catBreakdown = {};
   txs.filter(t => t.type === 'expense').forEach(t => {
     const c = cats.find(c => c.id === t.category_id);
-    const name = c ? c.name : 'Lainnya';
-    catBreakdown[name] = (catBreakdown[name] || 0) + t.amount;
+    catBreakdown[c ? c.name : 'Lainnya'] = (catBreakdown[c ? c.name : 'Lainnya'] || 0) + t.amount;
   });
 
   const budgetStatus = budgets.map(b => {
@@ -2441,30 +2719,21 @@ Tulis resume dengan format:
 Jangan gunakan markdown tebal atau karakter khusus. Tulis dalam paragraf dan bullet point biasa.`;
 
   const resultDiv = document.getElementById('ai-result');
-  resultDiv.innerHTML = `<div class="ai-loading"><div class="spinner"></div><p>Sedang menganalisis keuanganmu...</p></div>`;
+  const providerLabel = AI_PROVIDERS[cfg.provider]?.label || cfg.provider;
+  resultDiv.innerHTML = `<div class="ai-loading"><div class="spinner"></div><p>Menganalisis via ${providerLabel} (${cfg.model || '—'})…</p></div>`;
 
   document.getElementById('ai-btn').disabled = true;
   aiCooldown = true;
   setTimeout(() => { aiCooldown = false; document.getElementById('ai-btn').disabled = false; }, 15000);
 
   try {
-    const res = await fetch(`${GEMINI_ENDPOINT}?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-    });
-    if (res.status === 429) { throw new Error('Kuota API habis. Coba lagi nanti.'); }
-    if (res.status === 400) { throw new Error('API key tidak valid atau permintaan salah. Periksa key di Pengaturan.'); }
-    if (res.status === 403) { throw new Error('API key tidak punya izin. Pastikan Gemini API sudah diaktifkan di Google AI Studio.'); }
-    if (res.status === 404) { throw new Error('Model tidak ditemukan. Coba refresh halaman dan ulangi.'); }
-    if (!res.ok) { throw new Error(`Gagal menghubungi Gemini (HTTP ${res.status}). Coba lagi nanti.`); }
-    const data = await res.json();
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Tidak ada hasil.';
+    const text = await callAI(prompt);
     resultDiv.innerHTML = `<div class="ai-resume-box">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-        <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--accent-cyan);">✨ Resume AI</span>
-        <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('ai-resume-text').textContent).then(()=>showToast('Disalin!','success'))">📋 Salin</button>
+        <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--accent-cyan);">Resume AI</span>
+        <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('ai-resume-text').textContent).then(()=>showToast('Disalin!','success'))">Salin</button>
       </div>
+      <div style="font-size:0.72rem;color:var(--text-2);margin-bottom:8px;">${esc(providerLabel)} · ${esc(cfg.model || '')}</div>
       <div class="ai-resume-text" id="ai-resume-text"></div>
     </div>`;
     document.getElementById('ai-resume-text').textContent = text;
@@ -2651,53 +2920,83 @@ function renderSettings() {
   document.getElementById('dark-mode-toggle').checked = isDark;
   document.getElementById('light-mode-toggle').checked = !isDark;
   document.getElementById('ai-enabled-toggle').checked = s.aiEnabled;
-  updateGeminiKeyUI();
+  renderAIConfigUI();
 }
 
-function updateGeminiKeyUI() {
-  const apiKey = DB.get('dk_gemini_key', '');
-  const banner = document.getElementById('gemini-key-saved-banner');
-  const inputWrap = document.getElementById('gemini-key-input-wrap');
-  const btns = document.getElementById('gemini-key-btns');
-  const input = document.getElementById('gemini-key-input');
-  if (apiKey) {
+// Isi form AI config dari storage & update hint
+function renderAIConfigUI() {
+  const cfg = getAIConfig();
+  const provSel = document.getElementById('ai-provider-select');
+  const modelInp = document.getElementById('ai-model-input');
+  const baseUrlGrp = document.getElementById('ai-baseurl-group');
+  const baseUrlInp = document.getElementById('ai-baseurl-input');
+  const keyInp = document.getElementById('ai-key-input');
+  const banner = document.getElementById('ai-key-saved-banner');
+  const btns = document.getElementById('ai-key-btns');
+  const hint = document.getElementById('ai-provider-hint');
+
+  provSel.value = cfg.provider || 'gemini';
+  modelInp.value = cfg.model || AI_PROVIDERS[cfg.provider]?.defaultModel || '';
+  baseUrlInp.value = cfg.baseUrl || '';
+  baseUrlGrp.style.display = cfg.provider === 'litrouter' ? 'block' : 'none';
+  hint.innerHTML = AI_PROVIDERS[cfg.provider]?.hint || '';
+
+  if (cfg.apiKey) {
+    keyInp.value = '';
+    keyInp.placeholder = '••••••••••••••••';
     banner.style.display = 'flex';
-    inputWrap.style.display = 'none';
     btns.style.display = 'none';
-    input.value = '';
   } else {
+    keyInp.value = '';
+    keyInp.placeholder = 'Masukkan API key';
     banner.style.display = 'none';
-    inputWrap.style.display = 'block';
     btns.style.display = 'flex';
-    input.value = '';
-    input.placeholder = 'Masukkan API key dari Google AI Studio';
   }
 }
 
-function editGeminiKey() {
-  const inputWrap = document.getElementById('gemini-key-input-wrap');
-  const btns = document.getElementById('gemini-key-btns');
-  const banner = document.getElementById('gemini-key-saved-banner');
-  banner.style.display = 'none';
-  inputWrap.style.display = 'block';
-  btns.style.display = 'flex';
-  document.getElementById('gemini-key-input').value = '';
-  document.getElementById('gemini-key-input').focus();
+// Dipanggil saat dropdown provider berubah
+function onProviderChange() {
+  const provider = document.getElementById('ai-provider-select').value;
+  const p = AI_PROVIDERS[provider];
+  document.getElementById('ai-model-input').value = p?.defaultModel || '';
+  document.getElementById('ai-baseurl-input').value = p?.defaultBaseUrl || '';
+  document.getElementById('ai-baseurl-group').style.display = provider === 'litrouter' ? 'block' : 'none';
+  document.getElementById('ai-provider-hint').innerHTML = p?.hint || '';
 }
 
-function saveGeminiKey() {
-  const key = document.getElementById('gemini-key-input').value.trim();
-  if (!key) { showToast('Masukkan API key!', 'error'); return; }
-  DB.set('dk_gemini_key', key);
-  showToast('API key disimpan!', 'success');
-  updateGeminiKeyUI();
+function editAIConfig() {
+  document.getElementById('ai-key-saved-banner').style.display = 'none';
+  document.getElementById('ai-key-btns').style.display = 'flex';
+  const keyInp = document.getElementById('ai-key-input');
+  keyInp.value = '';
+  keyInp.placeholder = 'Masukkan API key baru';
+  keyInp.focus();
 }
 
-function deleteGeminiKey() {
-  if (!confirm('Hapus API key Gemini?')) return;
-  DB.del('dk_gemini_key');
-  showToast('API key dihapus.', 'success');
-  updateGeminiKeyUI();
+function saveAIConfig() {
+  const provider = document.getElementById('ai-provider-select').value;
+  const model = document.getElementById('ai-model-input').value.trim();
+  const baseUrl = document.getElementById('ai-baseurl-input').value.trim();
+  const keyInp = document.getElementById('ai-key-input');
+  const newKey = keyInp.value.trim();
+
+  if (!model) { showToast('Isi nama model!', 'error'); return; }
+
+  const existing = getAIConfig();
+  // Kalau key field kosong tapi sudah ada key tersimpan, pertahankan key lama
+  const apiKey = newKey || existing.apiKey || '';
+  if (!apiKey) { showToast('Masukkan API key!', 'error'); return; }
+
+  saveAIConfig_store({ provider, model, baseUrl, apiKey });
+  showToast('Konfigurasi AI disimpan!', 'success');
+  renderAIConfigUI();
+}
+
+function clearAIConfig() {
+  if (!confirm('Hapus konfigurasi AI (termasuk API key)?')) return;
+  DB.del('dk_ai_config');
+  showToast('Konfigurasi AI dihapus.', 'success');
+  renderAIConfigUI();
 }
 
 function toggleDarkMode(el) {
@@ -2731,7 +3030,7 @@ function toggleAIEnabled(el) {
 
 function confirmDeleteAll() {
   if (!confirm('Hapus SEMUA data DompetKampus dari browser ini? Tindakan ini tidak bisa dibatalkan!')) return;
-  const keys = ['dk_settings','dk_wallets','dk_custom_cats','dk_transactions','dk_budgets','dk_savings_goals','dk_goal_contribs','dk_learning','dk_gemini_key'];
+  const keys = ['dk_settings','dk_wallets','dk_custom_cats','dk_transactions','dk_budgets','dk_savings_goals','dk_goal_contribs','dk_learning','dk_gemini_key','dk_ai_config'];
   keys.forEach(k => DB.del(k));
   showToast('Semua data dihapus.', 'success');
   location.reload();
